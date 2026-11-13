@@ -1,0 +1,1300 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1719">
+<meta name="description" content="Квест из 8 замков с мини-играми и головоломками. Открой сейф Лансика.">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Сейф Лансика</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Onest:wght@400;500;700&family=Unbounded:wght@500;900&display=swap">
+<style>
+/* Layout: one long vault corridor. Hazard-tape hero, eight stacked locks, a rail of lock numbers on wide screens, a vault door at the end. */
+:root{
+  --ink:#0d1719;
+  --panel:#142225;
+  --panel-2:#1b2f33;
+  --line:#2b4549;
+  --fg:#e8f0ee;
+  --muted:#8aa5a3;
+  --hazard:#ffb81c;
+  --hot:#ff5a36;
+  --ok:#5ee6a8;
+  --bad:#ff6b6b;
+  --blue:#4aa3ff;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--ink);
+  background-image:
+    radial-gradient(circle at 1px 1px,rgba(138,165,163,.12) 1px,transparent 1.5px);
+  background-size:26px 26px;
+  color:var(--fg);
+  font-family:var(--f-body);
+  font-size:16px;
+  line-height:1.55;
+  min-height:100vh;
+}
+body::before{
+  content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);
+  background:var(--ink);z-index:30;
+}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--hazard);outline-offset:2px}
+.wrap{
+  max-width:900px;margin-inline:auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+
+/* ---------- top bar ---------- */
+.bar{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+  background:color-mix(in srgb,var(--ink) 92%,transparent);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.bar-in{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:10px}
+.brand{font:900 .8rem var(--f-display);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.brand b{color:var(--hazard)}
+.stats{display:flex;align-items:center;gap:14px;font:700 .85rem var(--f-mono);font-variant-numeric:tabular-nums}
+.stats .pen{color:var(--hot)}
+.snd{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:.8rem;color:var(--muted)}
+.snd[aria-pressed="true"]{color:var(--fg);border-color:var(--hazard)}
+.prog{height:3px;background:var(--line)}
+.prog i{display:block;height:100%;width:0;background:var(--hazard);transition:width .6s ease}
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+.tape{height:16px;background:repeating-linear-gradient(-45deg,var(--hazard) 0 16px,var(--ink) 16px 32px)}
+.hero-in{position:relative;padding-block:44px 52px}
+.floaters span{position:absolute;opacity:.35;user-select:none;pointer-events:none;will-change:transform}
+.hero-av{width:92px;height:92px;display:block;margin-bottom:10px;cursor:pointer;filter:drop-shadow(0 6px 0 rgba(0,0,0,.35))}
+.kicker{font:700 .78rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--hazard);margin:0 0 10px}
+h1{
+  font:900 clamp(2.1rem,8.2vw,4.5rem)/1.02 var(--f-display);
+  letter-spacing:-.025em;text-transform:uppercase;margin:0 0 18px;text-wrap:balance;
+}
+h1 span{color:var(--hazard);display:block}
+.type{font-size:1.1rem;color:var(--muted);min-height:3.2em;max-width:52ch;margin:0 0 26px}
+.type::after{content:"\258D";color:var(--hazard);margin-left:2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.start-card{
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:20px;max-width:560px;position:relative;
+}
+.start-card::before{
+  content:"";position:absolute;left:20px;top:-1px;width:84px;height:5px;background:var(--hazard);border-radius:0 0 4px 4px;
+}
+.prize{margin:0 0 14px;font-size:.98rem}
+.prize b{color:var(--hazard)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
+input[type="text"],textarea{
+  background:var(--ink);border:2px solid var(--line);border-radius:10px;padding:11px 14px;min-width:0;flex:1 1 200px;
+}
+input[type="text"]:focus,textarea:focus{border-color:var(--hazard);outline:none}
+.btn{
+  background:var(--hazard);color:#201400;font-weight:700;border:0;border-radius:8px;padding:11px 20px;
+  box-shadow:0 4px 0 #a87300;transition:transform .08s,box-shadow .08s;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #a87300}
+.ghost{background:transparent;border:1px dashed var(--line);border-radius:8px;padding:7px 12px;color:var(--muted);font-size:.85rem}
+.ghost:hover{color:var(--fg);border-color:var(--muted)}
+.fine{font-size:.82rem;color:var(--muted);margin:10px 0 0}
+
+/* ---------- rail ---------- */
+.rail{
+  position:fixed;right:max(14px,env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);
+  display:none;flex-direction:column;gap:8px;z-index:15;
+}
+.node{
+  width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:var(--ink);
+  font:700 .8rem var(--f-mono);color:var(--muted);padding:0;
+}
+.node.open{border-color:var(--hazard);color:var(--fg)}
+.node.done{background:var(--ok);border-color:var(--ok);color:#06241a}
+.node.cur{box-shadow:0 0 0 4px rgba(255,184,28,.25)}
+@media (min-width:1120px){.rail{display:flex}}
+
+/* ---------- locks ---------- */
+main{padding-block:34px 60px;display:flex;flex-direction:column;gap:34px}
+.reveal{transform:translateY(22px);transition:transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{transform:none}
+.lock{
+  position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:22px 20px 18px;scroll-margin-top:76px;
+}
+.lock.locked .game,.lock.locked .lock-foot{filter:blur(5px) grayscale(1);opacity:.35;pointer-events:none;user-select:none}
+.lock.locked::after{
+  content:"Замок " attr(data-n) " закрыт. Сначала взломай предыдущий.";
+  position:absolute;left:50%;top:58%;transform:translate(-50%,-50%) rotate(-3deg);
+  width:max-content;max-width:86%;text-align:center;
+  background:repeating-linear-gradient(-45deg,var(--hazard) 0 14px,#1b1500 14px 28px);
+  color:#fff;font:900 .85rem var(--f-display);text-transform:uppercase;
+  padding:12px 18px;border-radius:6px;text-shadow:0 2px 0 #000,0 0 6px #000;
+}
+.lock.done .game{pointer-events:none;opacity:.55}
+.lock.done{border-color:var(--ok)}
+.lock-head{display:flex;gap:16px;align-items:center;margin-bottom:14px}
+.num{font:900 2.8rem/1 var(--f-display);color:var(--line);letter-spacing:-.04em}
+.lock.done .num{color:var(--ok)}
+.lock h2{font:900 1.25rem/1.2 var(--f-display);margin:0 0 6px;text-transform:uppercase;text-wrap:balance}
+.chip{font:700 .72rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--hazard);border:1px solid var(--hazard);border-radius:4px;padding:2px 8px}
+.boris{display:flex;gap:12px;align-items:flex-start;margin-bottom:18px}
+.av{width:56px;height:56px;flex:none;background:var(--panel-2);border-radius:50%;border:2px solid var(--line)}
+.say{
+  margin:0;background:var(--panel-2);border-radius:4px 14px 14px 14px;padding:11px 14px;font-size:.96rem;min-width:0;
+  position:relative;
+}
+.say.pop{animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.94);opacity:.3}to{transform:none;opacity:1}}
+.game{display:flex;flex-direction:column;align-items:center;gap:14px;padding-block:6px}
+.lock-foot{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-top:1px dashed var(--line);padding-top:14px}
+.hintbar{display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0;flex:1 1 220px}
+.hint-text{margin:0;color:var(--hazard);font-size:.9rem}
+.digit{display:flex;align-items:center;gap:10px;font:700 .75rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.digit b{
+  width:46px;height:54px;display:grid;place-items:center;background:var(--ink);border:2px solid var(--line);border-radius:8px;
+  font:900 1.7rem var(--f-display);color:var(--line);
+}
+.lock.done .digit b{color:var(--ok);border-color:var(--ok);animation:pop .6s cubic-bezier(.2,1.4,.4,1)}
+.done-banner{display:none;font:900 .8rem var(--f-display);text-transform:uppercase;color:var(--ok);flex-basis:100%}
+.lock.done .done-banner{display:block}
+.status{font:700 .88rem var(--f-mono);color:var(--muted);min-height:1.4em;text-align:center;margin:0}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+
+/* ---------- 1: cipher ---------- */
+.cipher{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:100%}
+.cipher .ch{
+  width:30px;height:40px;display:grid;place-items:center;background:var(--ink);border:1px solid var(--line);border-radius:6px;
+  font:700 1.1rem var(--f-mono);
+}
+.cipher .sp{width:14px}
+.cipher.out .ch{border-color:var(--blue);color:var(--blue)}
+.cipher.out.ok .ch{border-color:var(--ok);color:var(--ok);background:rgba(94,230,168,.08)}
+.dial{display:flex;flex-direction:column;gap:6px;width:min(100%,420px);font:700 .85rem var(--f-mono)}
+.dial input{width:100%;accent-color:var(--hazard)}
+.dial output{color:var(--hazard);font-size:1.4rem}
+.dial label{display:flex;justify-content:space-between;align-items:center}
+
+/* ---------- 2: sliding puzzle ---------- */
+.slide{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(100%,330px)}
+.tile{
+  aspect-ratio:1;background:var(--panel-2);border:2px solid var(--line);border-radius:10px;
+  font:900 2rem var(--f-display);color:var(--fg);transition:transform .12s,border-color .12s;padding:0;
+}
+.tile:hover:not(.blank){border-color:var(--hazard);transform:scale(1.03)}
+.tile.blank{visibility:hidden}
+.tile.home{background:rgba(94,230,168,.14);border-color:var(--ok)}
+
+/* ---------- 3: memory ---------- */
+.mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:min(100%,400px)}
+.mem{aspect-ratio:1;background:none;border:0;padding:0;perspective:600px}
+.mem-in{position:relative;display:block;width:100%;height:100%;transform-style:preserve-3d;transition:transform .45s}
+.mem.open .mem-in,.mem.match .mem-in{transform:rotateY(180deg)}
+.face{
+  position:absolute;inset:0;display:grid;place-items:center;border-radius:10px;backface-visibility:hidden;
+  border:2px solid var(--line);font-size:2rem;
+}
+.face.front{
+  background:repeating-linear-gradient(45deg,var(--panel-2) 0 8px,var(--ink) 8px 16px);
+  font:900 1.4rem var(--f-display);color:var(--hazard);
+}
+.face.back{background:var(--panel-2);transform:rotateY(180deg)}
+.mem.match .face.back{border-color:var(--ok);background:rgba(94,230,168,.12)}
+
+/* ---------- 4: simon ---------- */
+.simon{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:min(100%,300px)}
+.pad{aspect-ratio:1;border:0;border-radius:18px;opacity:.38;transition:opacity .1s,transform .1s,box-shadow .1s}
+.pad.lit{opacity:1;transform:scale(1.04);box-shadow:0 0 36px currentColor}
+.pad[data-p="0"]{background:var(--bad);color:var(--bad);border-radius:100% 14px 14px 14px}
+.pad[data-p="1"]{background:var(--blue);color:var(--blue);border-radius:14px 100% 14px 14px}
+.pad[data-p="2"]{background:var(--ok);color:var(--ok);border-radius:14px 14px 14px 100%}
+.pad[data-p="3"]{background:var(--hazard);color:var(--hazard);border-radius:14px 14px 100% 14px}
+
+/* ---------- 5: lights ---------- */
+.lights{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:min(100%,320px)}
+.lamp{
+  aspect-ratio:1;border-radius:50%;background:var(--ink);border:2px solid var(--line);padding:0;transition:all .18s;
+}
+.lamp.on{
+  background:radial-gradient(circle,#fff3c4 0 18%,var(--hazard) 55%,#9a6500 100%);
+  border-color:var(--hazard);box-shadow:0 0 22px rgba(255,184,28,.6);
+}
+
+/* ---------- 6: quiz ---------- */
+.quiz{width:100%;display:flex;flex-direction:column;gap:12px}
+.q-text{font:700 1.15rem/1.3 var(--f-display);margin:0;text-wrap:balance}
+.opts{display:grid;gap:10px}
+.opt{
+  text-align:left;background:var(--panel-2);border:2px solid var(--line);border-radius:10px;padding:12px 14px;
+  transition:border-color .12s,transform .12s;
+}
+.opt:hover:not(:disabled){border-color:var(--hazard);transform:translateX(3px)}
+.opt:disabled{opacity:.55;cursor:default}
+.opt.right{border-color:var(--ok);background:rgba(94,230,168,.12);opacity:1}
+.opt.wrong{border-color:var(--bad);text-decoration:line-through}
+.q-note{min-height:3em;margin:0;color:var(--muted);font-size:.94rem}
+.q-prog{font:700 .78rem var(--f-mono);color:var(--muted);letter-spacing:.08em}
+
+/* ---------- 7: scene ---------- */
+.scene{
+  width:100%;height:380px;overflow-y:auto;overflow-x:hidden;border:2px solid var(--line);border-radius:12px;
+  background:#0a1213;position:relative;scrollbar-color:var(--hazard) var(--ink);
+}
+.scene-in{
+  position:relative;height:1500px;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 118px,rgba(43,69,73,.55) 118px 120px),
+    linear-gradient(180deg,#101e21,#0b1416 70%,#1a1408);
+}
+.scene .lbl{position:absolute;left:50%;transform:translateX(-50%);font:700 .72rem var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.junk{position:absolute;z-index:1;user-select:none;pointer-events:none;filter:saturate(.7)}
+.find{position:absolute;z-index:2;background:none;border:0;padding:0;line-height:1;opacity:.5;transition:transform .2s,opacity .2s}
+.find:hover{opacity:.9}
+.find.got{opacity:1;transform:scale(1.8) rotate(12deg);filter:drop-shadow(0 0 8px var(--ok));pointer-events:none}
+.counter{font:700 1rem var(--f-mono);color:var(--hazard)}
+
+/* ---------- 8: safe ---------- */
+.notebook{
+  width:min(100%,420px);background:#e9e2c8;color:#2a2418;border-radius:4px;padding:12px 16px;transform:rotate(-1.2deg);
+  box-shadow:0 8px 0 rgba(0,0,0,.35);font:700 .95rem var(--f-mono);
+}
+.notebook h3{margin:0 0 8px;font:900 .8rem var(--f-display);text-transform:uppercase}
+.notebook ol{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.notebook li{border-bottom:2px solid #2a2418;padding-bottom:2px}
+.notebook li small{display:block;font-size:.62rem;font-weight:400}
+.safe-disp{
+  width:min(100%,330px);text-align:center;background:#07100f;border:2px solid var(--line);border-radius:10px;
+  font:700 1.5rem var(--f-mono);letter-spacing:.1em;padding:12px;color:var(--ok);
+}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(100%,330px)}
+.key{background:var(--panel-2);border:2px solid var(--line);border-radius:10px;padding:14px 0;font:700 1.3rem var(--f-mono);transition:transform .08s}
+.key:active{transform:scale(.94)}
+.key.fn{color:var(--hazard)}
+
+/* ---------- finale ---------- */
+.finale{background:var(--panel);border:2px solid var(--hazard);border-radius:16px;padding:22px 20px;display:flex;flex-direction:column;gap:18px;scroll-margin-top:76px}
+.vault{position:relative;height:200px;border-radius:12px;overflow:hidden;background:radial-gradient(circle,#ffe08a,#ff9d1c 45%,#5a3600);display:grid;place-items:center}
+.vault .gold{font:900 1.15rem/1.2 var(--f-display);color:#2a1a00;text-align:center;text-transform:uppercase;padding:0 14px;text-wrap:balance}
+.door{
+  position:absolute;top:0;bottom:0;width:50%;background:linear-gradient(90deg,#26393d,#34505a);
+  display:grid;place-items:center;transition:transform 1.5s cubic-bezier(.7,0,.2,1);
+}
+.door.l{left:0;border-right:3px solid #0a1214}
+.door.r{right:0;border-left:3px solid #0a1214}
+.door i{width:54px;height:54px;border-radius:50%;border:6px solid var(--hazard)}
+.vault.open .door.l{transform:translateX(-101%)}
+.vault.open .door.r{transform:translateX(101%)}
+.cert{background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px}
+.cert dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:.95rem}
+.cert dt{color:var(--muted)}
+.cert dd{margin:0;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.cert textarea{width:100%;min-height:92px;font:400 .78rem var(--f-mono);resize:vertical;flex:none}
+.finale h2{font:900 1.5rem/1.15 var(--f-display);margin:0;text-transform:uppercase;text-wrap:balance}
+
+/* ---------- judge ---------- */
+.judge{padding-block:30px 60px;display:flex;flex-direction:column;gap:16px}
+.judge h2{font:900 1.5rem var(--f-display);text-transform:uppercase;margin:0}
+select{background:var(--ink);border:2px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--fg)}
+.qrbox{background:#fff;padding:16px;border-radius:8px;width:max-content;max-width:100%}
+.qrbox img,.qrbox canvas{display:block;max-width:100%}
+.judge textarea{width:100%;min-height:150px;font:400 .8rem var(--f-mono);flex:none}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
+th{font:700 .72rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+tr.win td:first-child{color:var(--hazard);font-weight:700}
+tr.bad td{color:var(--bad)}
+
+footer{padding-block:22px 40px;color:var(--muted);font-size:.82rem;border-top:1px solid var(--line)}
+footer a{color:var(--muted)}
+
+/* ---------- toast + confetti ---------- */
+.toast{
+  position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,40px);opacity:0;
+  background:var(--hazard);color:#201400;font-weight:700;padding:10px 18px;border-radius:8px;z-index:40;pointer-events:none;
+  transition:all .3s;max-width:88vw;text-align:center;
+}
+.toast.on{transform:translate(-50%,0);opacity:1}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+
+@media (max-width:520px){
+  .lock{padding:18px 14px 14px}
+  .num{font-size:2.1rem}
+  .cipher .ch{width:24px;height:34px;font-size:.95rem}
+  .brand{font-size:.68rem}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{animation:none!important;transition:none!important}
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="lansik" viewBox="0 0 100 100">
+    <circle cx="50" cy="56" r="30" fill="#f0c4a0"/>
+    <path d="M19 52 Q16 22 50 20 Q84 22 81 52 Q76 36 62 34 Q50 40 38 34 Q24 36 19 52Z" fill="#3a2a22"/>
+    <circle cx="40" cy="58" r="3.4" fill="#1b1b1b"/>
+    <circle cx="60" cy="58" r="3.4" fill="#1b1b1b"/>
+    <path d="M33 51 L46 53 M67 51 L54 53" stroke="#3a2a22" stroke-width="3" stroke-linecap="round"/>
+    <path d="M38 72 Q52 84 64 70" stroke="#8a4b3a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<canvas id="confetti" aria-hidden="true"></canvas>
+<div class="toast" id="toast" role="status"></div>
+
+<div class="bar">
+  <div class="wrap bar-in">
+    <div class="brand">Сейф <b>Лансика</b></div>
+    <div class="stats">
+      <span id="locksCount">0/8</span>
+      <span id="clock">00:00</span>
+      <span class="pen" id="pen" hidden></span>
+      <button class="snd" id="snd" type="button" aria-pressed="true">Звук: да</button>
+    </div>
+  </div>
+  <div class="prog"><i id="progBar"></i></div>
+</div>
+
+<nav class="rail" id="rail" aria-label="Замки"></nav>
+
+<div id="quest">
+  <header class="hero" id="start">
+    <div class="tape"></div>
+    <div class="wrap hero-in">
+      <div class="floaters" aria-hidden="true">
+        <span data-speed="0.12" data-rot="-12" style="left:72%;top:12%;font-size:3rem">🧦</span>
+        <span data-speed="-0.08" data-rot="20" style="left:88%;top:44%;font-size:2.4rem">🔧</span>
+        <span data-speed="0.2" data-rot="8" style="left:60%;top:68%;font-size:2.8rem">🥔</span>
+        <span data-speed="-0.15" data-rot="-25" style="left:80%;top:78%;font-size:2.2rem">🪴</span>
+        <span data-speed="0.1" data-rot="15" style="left:50%;top:6%;font-size:2rem">☎️</span>
+        <span data-speed="-0.05" data-rot="-8" style="left:94%;top:18%;font-size:2.2rem">🧲</span>
+        <span data-speed="0.18" data-rot="30" style="left:66%;top:40%;font-size:2.3rem">🔑</span>
+      </div>
+      <svg class="hero-av" id="heroAv" role="img" aria-label="Лансик"><use href="#lansik"/></svg>
+      <p class="kicker">Квест · 8 замков · 7 разных игр</p>
+      <h1>Сейф <span>Лансика</span></h1>
+      <p class="type" id="typed"></p>
+      <div class="start-card">
+        <p class="prize">Первые <b>10 человек</b>, открывших сейф, получат подарок. Время идёт с первой секунды, подсказки добавляют штраф.</p>
+        <form class="row" id="startForm" autocomplete="off">
+          <input type="text" id="nick" maxlength="32" placeholder="Твой ник в Телеграме" aria-label="Твой ник в Телеграме">
+          <button class="btn" type="submit">Начать взлом</button>
+        </form>
+        <p id="welcome" hidden class="prize">Лансик записал тебя как <b id="welcomeNick"></b>. Таймер идёт, листай вниз.</p>
+        <p class="fine">В конце получишь токен победителя. Отправь его в канал, и мы увидим твоё время.</p>
+      </div>
+    </div>
+    <div class="tape"></div>
+  </header>
+
+  <div class="wrap">
+    <main id="locks">
+
+      <section class="lock locked reveal" data-n="1" data-title="Записка на дверце" data-tag="Шифр Цезаря">
+        <div class="game">
+          <div class="cipher" id="cipherEnc" aria-label="Зашифрованная записка"></div>
+          <div class="dial">
+            <label for="shift">Сдвиг букв <output id="shiftOut" for="shift">0</output></label>
+            <input type="range" id="shift" min="0" max="31" value="0">
+          </div>
+          <div class="cipher out" id="cipherDec" aria-live="polite"></div>
+          <div class="row">
+            <input type="text" id="cipherAns" placeholder="Где Лансик прячет ключ? Одно слово" aria-label="Ответ">
+            <button class="btn" id="cipherBtn" type="button">Проверить</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="lock locked reveal" data-n="2" data-title="Заклинившая панель" data-tag="Пятнашки 3×3">
+        <div class="game">
+          <div class="slide" id="slide"></div>
+          <p class="status">Ходов: <span id="slideMoves">0</span></p>
+          <button class="ghost" id="slideNew" type="button">Перемешать заново</button>
+        </div>
+      </section>
+
+      <section class="lock locked reveal" data-n="3" data-title="Ящик с барахлом" data-tag="Мемори">
+        <div class="game">
+          <div class="mem-grid" id="memGrid"></div>
+          <p class="status">Попыток: <span id="memTries">0</span> · Найдено пар: <span id="memPairs">0</span>/6</p>
+        </div>
+      </section>
+
+      <section class="lock locked reveal" data-n="4" data-title="Дверной звонок" data-tag="Повтори мелодию">
+        <div class="game">
+          <div class="simon" id="simon">
+            <button class="pad" data-p="0" type="button" aria-label="Красная кнопка"></button>
+            <button class="pad" data-p="1" type="button" aria-label="Синяя кнопка"></button>
+            <button class="pad" data-p="2" type="button" aria-label="Зелёная кнопка"></button>
+            <button class="pad" data-p="3" type="button" aria-label="Жёлтая кнопка"></button>
+          </div>
+          <p class="status" id="simonStatus">Нажми «Старт». Нужно повторить 6 нот подряд.</p>
+          <button class="btn" id="simonStart" type="button">Старт</button>
+        </div>
+      </section>
+
+      <section class="lock locked reveal" data-n="5" data-title="Щиток с лампочками" data-tag="Погаси свет">
+        <div class="game">
+          <div class="lights" id="lights"></div>
+          <p class="status">Нажатие переключает лампочку и её соседей. Перемешано всего тремя нажатиями. Ходов: <span id="lightMoves">0</span></p>
+          <button class="ghost" id="lightsNew" type="button">Другой щиток</button>
+        </div>
+      </section>
+
+      <section class="lock locked reveal" data-n="6" data-title="Допрос с пристрастием" data-tag="Викторина с подвохами">
+        <div class="game">
+          <div class="quiz">
+            <span class="q-prog" id="qProg"></span>
+            <p class="q-text" id="qText"></p>
+            <div class="opts" id="qOpts"></div>
+            <p class="q-note" id="qNote"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="lock locked reveal" data-n="7" data-title="Гараж, где пропали носки" data-tag="Поиск на скролле">
+        <div class="game">
+          <p class="status">Листай гараж внутри рамки и найди 5 носков. Остальное не трогай, это улики.</p>
+          <div class="scene" id="scene" tabindex="0" aria-label="Гараж Лансика, прокручиваемая сцена">
+            <div class="scene-in" id="sceneIn"></div>
+          </div>
+          <div class="counter">Носков: <span id="sockCount">0</span>/5</div>
+        </div>
+      </section>
+
+      <section class="lock locked reveal" data-n="8" data-title="Сам сейф" data-tag="Финальный код">
+        <div class="game">
+          <div class="notebook">
+            <h3>Тетрадь Лансика. Цифры по замкам</h3>
+            <ol id="notebook"></ol>
+          </div>
+          <div class="safe-disp" id="safeDisp">_ _ _ _ _ _ _</div>
+          <div class="keys" id="keys"></div>
+        </div>
+      </section>
+
+      <section class="finale reveal" id="finale" hidden>
+        <div class="vault" id="vault">
+          <div class="gold">Сейф пуст. Только записка: «Носки верни»</div>
+          <div class="door l"><i></i></div>
+          <div class="door r"><i></i></div>
+        </div>
+        <h2>Сейф открыт</h2>
+        <div class="cert">
+          <dl>
+            <dt>Взломщик</dt><dd id="cNick"></dd>
+            <dt>Время</dt><dd id="cTime"></dd>
+            <dt>Финиш</dt><dd id="cDate"></dd>
+            <dt>Подсказок</dt><dd id="cHints"></dd>
+          </dl>
+          <label for="token" class="fine">Токен победителя. Скопируй и отправь в канал целиком.</label>
+          <textarea id="token" readonly></textarea>
+          <div class="row">
+            <button class="btn" id="copyTok" type="button">Скопировать токен</button>
+            <button class="ghost" id="again" type="button">Пройти заново</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  <footer>
+    <div class="wrap">Сделано для канала. Для автора: <a href="#judge">режим жюри</a>.</div>
+  </footer>
+</div>
+
+<section id="judge" hidden>
+  <div class="wrap judge">
+    <h2>Жюри</h2>
+    <p class="fine">Время финиша берётся с часов телефона участника. Для честной очереди сверяй его с порядком сообщений в канале.</p>
+    <p class="fine">Вставь токены, по одному в строке. Таблица сама отсортирует их по времени финиша и отметит первую десятку. Токен защищён подписью, но файл открытый: это защита от случайных подделок, не от взлома.</p>
+    <textarea id="tokens" placeholder="Токены сюда" aria-label="Токены участников"></textarea>
+    <div class="row">
+      <select id="judgeSort" aria-label="Порядок">
+        <option value="finish">По времени финиша</option>
+        <option value="dur">По скорости прохождения</option>
+      </select>
+      <button class="btn" id="judgeBtn" type="button">Проверить и отсортировать</button>
+      <a class="ghost" href="#start" style="text-decoration:none;display:inline-flex;align-items:center">К квесту</a>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Место</th><th>Ник</th><th>Финиш (МСК)</th><th>Время</th><th>Секунд</th><th>Статус</th></tr></thead>
+      <tbody id="judgeRows"></tbody>
+    </table></div>
+    <h2>QR-код ссылки</h2>
+    <p class="fine">Открой квест по его настоящей ссылке и добавь в конце #judge. Адрес подставится сам. Нажми «Сделать QR», потом «Скачать PNG».</p>
+    <div class="row">
+      <input type="text" id="qrUrl" placeholder="https://твой-ник.github.io/lansik-safe/" aria-label="Ссылка на квест">
+      <button class="btn" id="qrMake" type="button">Сделать QR</button>
+    </div>
+    <div class="qrbox" id="qrBox" hidden></div>
+    <div class="row"><button class="ghost" id="qrDl" type="button" hidden>Скачать PNG</button></div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(() => {
+"use strict";
+
+/* ====== helpers ====== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const rand = n => Math.floor(Math.random() * n);
+const pick = a => a[rand(a.length)];
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const DIGITS = [4, 2, 7, 1, 9, 3, 8];
+const SECRET = "lansik-vault-2026-nov";
+const HINT_COST = 20;
+const KEY = "lansikSafe.v1";
+const S = { nick: "", start: 0, penalty: 0, hints: {}, solved: [], finish: 0 };
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode */ } }
+function load() {
+  try {
+    const r = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (r && typeof r === "object") Object.assign(S, r);
+  } catch (e) { /* ignore */ }
+}
+
+/* ====== text: Boris lines, hints ====== */
+const HINTS = {
+  1: "Сдвиг равен счастливому числу Лансика. Он родился седьмого.",
+  2: "Собирай по рядам: сначала верхний 1-2-3, потом средний.",
+  3: "Начни с одного угла и запоминай, что лежит рядом.",
+  4: "Повторяй цвета вслух. Так запоминается быстрее.",
+  5: "Узор получен всего тремя нажатиями. Найди три лампочки, нажатия на которые его повторят, и нажми их ещё раз.",
+  6: "Подвох в самих вопросах. Ответ обычно проще, чем кажется.",
+  7: "Носки прячутся у стен и за ящиками. Один висит почти под потолком.",
+  8: "Цифры вводятся по порядку замков: сначала первый, потом второй и так далее."
+};
+const LINES = {
+  1: { intro: "Так. Ты кто такой? Неважно. Замок первый: я зашифровал записку, каждая буква сдвинута. Крути ползунок, пока не станет читаемо.", win: "Ого, прочитал. Чайник проверю на отпечатки. Цифру забирай.", bad: ["Нет. Лансик оскорблён.", "Холодно. Как в моём гараже в январе.", "Это слово не из записки. Это просто слово."] },
+  2: { intro: "Замок второй. Пятнашки. Я сам собрал их только с третьей попытки. Не говори никому.", win: "Собрал. Подозрительно быстро. Ты точно не заглядывал в инструкцию?" },
+  3: { intro: "Замок третий. Тут лежит всё, что я «потом починю». Найди парные вещи.", win: "Шесть пар, как в аптеке. Ладно, цифра твоя.", bad: ["Мимо. У меня тоже память как у рыбки, только злее.", "Не пара. Но старался.", "Лансик вздохнул так, что ящик закрылся."] },
+  4: { intro: "Замок четвёртый. Звонок. Я записал мелодию, пока соседи не жаловались. Повтори её.", win: "Слух есть. Жаль, голоса нет, но замок это не волнует.", bad: ["Не та нота. Бывает, у Лансика тоже бывает.", "Сначала смотри, потом тыкай.", "Мимо. Соседи довольны."] },
+  5: { intro: "Замок пятый. Щиток. Лампочки связаны так, как их связал электрик Вася. Вася уволен.", win: "Темно. Красота. Цифра светится на ощупь." },
+  6: { intro: "Замок шестой. Пять вопросов. Отвечай как человек, который не боится подвохов.", win: "Пять из пяти. Придётся поменять вопросы, раз так." },
+  7: { intro: "Замок седьмой. Гараж. Тут пропали пять носков. Найди их, я расскажу, где цифра.", win: "Все пять. Это же были мои любимые. Стирал на прошлой неделе, честно." },
+  8: { intro: "Последний рубеж. Набери код: семь цифр из замков по порядку. Тетрадь рядом.", win: "Ладно, ладно. Забирай. Только носки верни.", bad: ["Дверь не открылась. Лансик ухмыльнулся.", "Цифры идут по порядку замков, мозг мой.", "Почти. Нет, не почти."] }
+};
+
+/* ====== audio ====== */
+let ac = null, soundOn = true;
+function tone(f, d = .15, type = "sine", v = .08, when = 0) {
+  if (!soundOn) return;
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const t = ac.currentTime + when, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(v, t);
+    g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(g); g.connect(ac.destination);
+    o.start(t); o.stop(t + d + .02);
+  } catch (e) { /* no audio */ }
+}
+const sfx = {
+  good: () => { tone(660, .12, "triangle"); tone(880, .16, "triangle", .08, .1); },
+  bad: () => tone(170, .24, "sawtooth", .07),
+  flip: () => tone(380, .05, "square", .03),
+  win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .24, "triangle", .09, i * .1))
+};
+$("#snd").addEventListener("click", e => {
+  soundOn = !soundOn;
+  e.currentTarget.setAttribute("aria-pressed", String(soundOn));
+  e.currentTarget.textContent = soundOn ? "Звук: да" : "Звук: нет";
+});
+
+/* ====== toast, speech, confetti ====== */
+let toastT;
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg; t.classList.add("on");
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove("on"), 2300);
+}
+function say(n, text) {
+  const el = $(`.lock[data-n="${n}"] .say`);
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+}
+const cv = $("#confetti"), cx = cv.getContext("2d");
+let parts = [], raf = 0;
+function sizeCanvas() { cv.width = innerWidth; cv.height = innerHeight; }
+sizeCanvas(); addEventListener("resize", sizeCanvas);
+function burst(x, y, n = 70) {
+  if (reduce) return;
+  const colors = ["#ffb81c", "#ff5a36", "#5ee6a8", "#4aa3ff", "#e8f0ee"];
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = 3 + Math.random() * 7;
+    parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 4, g: .22, r: 3 + Math.random() * 4, c: pick(colors), life: 90 + rand(50), rot: Math.random() * 6 });
+  }
+  if (!raf) raf = requestAnimationFrame(tick);
+}
+function tick() {
+  cx.clearRect(0, 0, cv.width, cv.height);
+  parts = parts.filter(p => p.life > 0);
+  for (const p of parts) {
+    p.vy += p.g; p.x += p.vx; p.y += p.vy; p.vx *= .99; p.life--; p.rot += .15;
+    cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot);
+    cx.globalAlpha = Math.min(1, p.life / 30);
+    cx.fillStyle = p.c; cx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
+    cx.restore();
+  }
+  raf = parts.length ? requestAnimationFrame(tick) : 0;
+  if (!parts.length) cx.clearRect(0, 0, cv.width, cv.height);
+}
+function burstAtEl(el) {
+  const r = el.getBoundingClientRect();
+  burst(Math.min(innerWidth - 20, Math.max(20, r.left + r.width / 2)), Math.min(innerHeight - 40, Math.max(80, r.top + 80)));
+}
+
+/* ====== clock ====== */
+function fmt(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+}
+function elapsed() {
+  if (!S.start) return 0;
+  const end = S.finish ? S.finish * 1000 : Date.now();
+  return end - S.start + S.penalty * 1000;
+}
+function paintClock() {
+  $("#clock").textContent = fmt(elapsed());
+  const p = $("#pen");
+  p.hidden = !S.penalty;
+  p.textContent = "+" + S.penalty + " с";
+}
+setInterval(paintClock, 500);
+
+/* ====== structure: locks, rail, progress ====== */
+function decorateLocks() {
+  $$(".lock").forEach(l => {
+    const n = +l.dataset.n;
+    const head = document.createElement("div");
+    head.className = "lock-head";
+    head.innerHTML = `<span class="num">${String(n).padStart(2, "0")}</span><div><h2>${l.dataset.title}</h2><span class="chip">${l.dataset.tag}</span></div>`;
+    const bor = document.createElement("div");
+    bor.className = "boris";
+    bor.innerHTML = `<svg class="av" aria-hidden="true"><use href="#lansik"/></svg><p class="say"></p>`;
+    const foot = document.createElement("div");
+    foot.className = "lock-foot";
+    foot.innerHTML =
+      `<div class="hintbar"><button class="ghost" data-hint="${n}" type="button">Подсказка (+${HINT_COST} с)</button>` +
+      `<p class="hint-text" hidden>${HINTS[n]}</p></div>` +
+      (n < 8 ? `<div class="digit"><span>Цифра замка</span><b data-digit="${n}">?</b></div>` : "") +
+      `<div class="done-banner">Замок взломан</div>`;
+    l.prepend(bor); l.prepend(head); l.append(foot);
+    say(n, LINES[n].intro);
+  });
+  const rail = $("#rail");
+  for (let n = 1; n <= 8; n++) {
+    const b = document.createElement("button");
+    b.className = "node"; b.type = "button"; b.dataset.go = n; b.textContent = n;
+    b.setAttribute("aria-label", "Замок " + n);
+    b.addEventListener("click", () => { if (!lockEl(n).classList.contains("locked")) scrollToLock(n); });
+    rail.append(b);
+  }
+}
+const lockEl = n => $(`.lock[data-n="${n}"]`);
+function scrollToLock(n) { lockEl(n).scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }
+function unlock(n) {
+  if (n > 8) return;
+  lockEl(n).classList.remove("locked");
+  paintProgress();
+}
+function paintProgress() {
+  const done = S.solved.length;
+  $("#locksCount").textContent = done + "/8";
+  $("#progBar").style.width = (done / 8 * 100) + "%";
+  $$(".node").forEach(nd => {
+    const n = +nd.dataset.go, l = lockEl(n);
+    nd.classList.toggle("done", S.solved.includes(n));
+    nd.classList.toggle("open", !l.classList.contains("locked"));
+  });
+}
+function paintNotebook() {
+  $$("#notebook li b").forEach(b => {
+    const n = +b.dataset.k;
+    b.textContent = S.solved.includes(n) ? DIGITS[n - 1] : "?";
+  });
+}
+function markSolved(n) {
+  const l = lockEl(n);
+  l.classList.add("done");
+  const d = $(`[data-digit="${n}"]`, l);
+  if (d) d.textContent = DIGITS[n - 1];
+  paintNotebook();
+}
+function solve(n) {
+  if (S.solved.includes(n)) return;
+  S.solved.push(n); save();
+  markSolved(n);
+  sfx.win(); burstAtEl(lockEl(n));
+  say(n, LINES[n].win);
+  if (n < 8) {
+    unlock(n + 1);
+    toast("Замок " + n + " взломан. Цифра: " + DIGITS[n - 1]);
+    setTimeout(() => scrollToLock(n + 1), 1500);
+  }
+  paintProgress();
+}
+function setupHints() {
+  $$("[data-hint]").forEach(b => b.addEventListener("click", () => {
+    const n = +b.dataset.hint;
+    const txt = $(".hint-text", lockEl(n));
+    if (!S.hints[n]) {
+      S.hints[n] = true;
+      if (S.start && !S.finish) { S.penalty += HINT_COST; toast("Подсказка стоит " + HINT_COST + " секунд"); }
+      save(); paintClock();
+    }
+    txt.hidden = false;
+    b.hidden = true;
+  }));
+}
+
+/* ====== start / resume ====== */
+const cleanNick = v => v.replace(/[|\s]+/g, " ").trim().slice(0, 32);
+function beginUI() {
+  $("#startForm").hidden = true;
+  $("#welcome").hidden = false;
+  $("#welcomeNick").textContent = S.nick;
+  unlock(1);
+}
+$("#startForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const nick = cleanNick($("#nick").value);
+  if (nick.length < 2) { toast("Ник короче двух символов. Лансик не поверит."); return; }
+  Object.assign(S, { nick, start: Date.now(), penalty: 0, hints: {}, solved: [], finish: 0 });
+  save(); beginUI(); paintClock();
+  sfx.good();
+  setTimeout(() => scrollToLock(1), 350);
+});
+
+/* ====== level 1: cipher ====== */
+function initCipher() {
+  const ALPHA = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+  const PLAIN = "ЛАНСИК ПРЯЧЕТ КЛЮЧ В ЧАЙНИКЕ", SHIFT = 7;
+  const move = (txt, k) => [...txt].map(c => {
+    const i = ALPHA.indexOf(c);
+    return i < 0 ? c : ALPHA[(i + k + ALPHA.length * 2) % ALPHA.length];
+  }).join("");
+  const enc = move(PLAIN, SHIFT);
+  const draw = (box, txt) => {
+    box.innerHTML = "";
+    [...txt].forEach(c => {
+      const s = document.createElement("span");
+      s.className = c === " " ? "sp" : "ch";
+      s.textContent = c === " " ? "" : c;
+      box.append(s);
+    });
+  };
+  const encBox = $("#cipherEnc"), decBox = $("#cipherDec"), sl = $("#shift"), out = $("#shiftOut");
+  sl.max = ALPHA.length - 1;
+  draw(encBox, enc);
+  const update = () => {
+    const s = +sl.value, dec = move(enc, -s);
+    out.textContent = s;
+    draw(decBox, dec);
+    const ok = dec === PLAIN;
+    decBox.classList.toggle("ok", ok);
+    if (ok) { sfx.good(); say(1, "Вот теперь читается. Осталось сказать, где ключ."); }
+  };
+  sl.addEventListener("input", update);
+  update();
+  const check = () => {
+    const a = $("#cipherAns").value.toUpperCase().replace(/Ё/g, "Е").trim();
+    if (a.includes("ЧАЙНИК")) solve(1);
+    else { sfx.bad(); say(1, pick(LINES[1].bad)); decBox.classList.add("shake"); setTimeout(() => decBox.classList.remove("shake"), 450); }
+  };
+  $("#cipherBtn").addEventListener("click", check);
+  $("#cipherAns").addEventListener("keydown", e => { if (e.key === "Enter") check(); });
+}
+
+/* ====== level 2: sliding puzzle ====== */
+function initSlide() {
+  const box = $("#slide"), mv = $("#slideMoves"), goal = "123456780";
+  let t = [], moves = 0, locked = false;
+  const nb = i => {
+    const r = Math.floor(i / 3), c = i % 3, o = [];
+    if (r > 0) o.push(i - 3); if (r < 2) o.push(i + 3);
+    if (c > 0) o.push(i - 1); if (c < 2) o.push(i + 1);
+    return o;
+  };
+  function newGame() {
+    t = goal.split("").map(Number);
+    let blank = 8, prev = -1;
+    for (let k = 0; k < 80; k++) {
+      const opts = nb(blank).filter(x => x !== prev);
+      const x = pick(opts);
+      [t[blank], t[x]] = [t[x], t[blank]];
+      prev = blank; blank = x;
+    }
+    if (t.join("") === goal) return newGame();
+    moves = 0; locked = false; render();
+  }
+  function render() {
+    box.innerHTML = "";
+    t.forEach((v, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "tile" + (v === 0 ? " blank" : "") + (v === i + 1 ? " home" : "");
+      b.textContent = v || "";
+      b.setAttribute("aria-label", v ? "Плитка " + v : "Пусто");
+      b.addEventListener("click", () => step(i));
+      box.append(b);
+    });
+    mv.textContent = moves;
+  }
+  function step(i) {
+    if (locked) return;
+    const blank = t.indexOf(0);
+    if (!nb(i).includes(blank)) { tone(140, .08, "square", .04); return; }
+    [t[i], t[blank]] = [t[blank], t[i]];
+    moves++; sfx.flip(); render();
+    if (t.join("") === goal) { locked = true; setTimeout(() => solve(2), 400); }
+  }
+  $("#slideNew").addEventListener("click", newGame);
+  newGame();
+}
+
+/* ====== level 3: memory ====== */
+function initMemory() {
+  const icons = ["🧦", "🔧", "🥔", "🪴", "☎️", "🧲"];
+  const grid = $("#memGrid"), triesEl = $("#memTries"), pairsEl = $("#memPairs");
+  let open = [], tries = 0, pairs = 0, busy = false;
+  shuffle([...icons, ...icons]).forEach(ic => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "mem"; b.dataset.ic = ic;
+    b.setAttribute("aria-label", "Карточка");
+    b.innerHTML = `<span class="mem-in"><span class="face front">?</span><span class="face back">${ic}</span></span>`;
+    b.addEventListener("click", async () => {
+      if (busy || b.classList.contains("open") || b.classList.contains("match")) return;
+      b.classList.add("open"); open.push(b); sfx.flip();
+      if (open.length < 2) return;
+      busy = true; tries++; triesEl.textContent = tries;
+      const [a, c] = open; open = [];
+      if (a.dataset.ic === c.dataset.ic) {
+        a.classList.replace("open", "match"); c.classList.replace("open", "match");
+        pairs++; pairsEl.textContent = pairs; sfx.good();
+        busy = false;
+        if (pairs === 6) setTimeout(() => solve(3), 500);
+      } else {
+        await sleep(850);
+        a.classList.remove("open"); c.classList.remove("open");
+        if (tries % 3 === 0) say(3, pick(LINES[3].bad));
+        busy = false;
+      }
+    });
+    grid.append(b);
+  });
+}
+
+/* ====== level 4: simon ====== */
+function initSimon() {
+  const pads = $$(".pad"), status = $("#simonStatus"), TARGET = 6;
+  const freq = [262, 330, 392, 523];
+  let seq = [], pos = 0, busy = true, started = false, token = 0;
+  const flash = async p => {
+    pads[p].classList.add("lit"); tone(freq[p], .3, "triangle", .1);
+    await sleep(320);
+    pads[p].classList.remove("lit");
+  };
+  async function play() {
+    const t = ++token;
+    busy = true; status.textContent = "Смотри внимательно";
+    await sleep(600);
+    for (const p of seq) {
+      if (t !== token) return;
+      await flash(p); await sleep(240);
+    }
+    if (t !== token) return;
+    busy = false; pos = 0;
+    status.textContent = "Твоя очередь. Длина мелодии " + seq.length + " из " + TARGET;
+  }
+  $("#simonStart").addEventListener("click", () => {
+    seq = [rand(4)]; started = true; play();
+  });
+  pads.forEach(pd => pd.addEventListener("click", async () => {
+    if (busy || !started) return;
+    const p = +pd.dataset.p;
+    flash(p);
+    if (p !== seq[pos]) {
+      sfx.bad(); started = false; busy = true;
+      status.textContent = "Мимо. Жми «Старт» и начни заново.";
+      say(4, pick(LINES[4].bad));
+      $("#simon").classList.add("shake"); setTimeout(() => $("#simon").classList.remove("shake"), 450);
+      return;
+    }
+    pos++;
+    if (pos === seq.length) {
+      if (seq.length === TARGET) { busy = true; status.textContent = "Мелодия сыграна"; setTimeout(() => solve(4), 500); return; }
+      busy = true; await sleep(700);
+      seq.push(rand(4)); play();
+    }
+  }));
+}
+
+/* ====== level 5: lights out ====== */
+function initLights() {
+  const box = $("#lights"), mv = $("#lightMoves");
+  let cells = [], moves = 0, over = false;
+  const hit = i => {
+    const r = Math.floor(i / 4), c = i % 4;
+    [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dr, dc]) => {
+      const rr = r + dr, cc = c + dc;
+      if (rr >= 0 && rr < 4 && cc >= 0 && cc < 4) cells[rr * 4 + cc] = !cells[rr * 4 + cc];
+    });
+  };
+  function newGame() {
+    do {
+      cells = Array(16).fill(false);
+      shuffle([...Array(16).keys()]).slice(0, 3).forEach(hit);
+    } while (!cells.some(Boolean));
+    moves = 0; over = false; render();
+  }
+  function render() {
+    box.innerHTML = "";
+    cells.forEach((on, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "lamp" + (on ? " on" : "");
+      b.setAttribute("aria-label", "Лампочка " + (i + 1) + (on ? ", горит" : ", погашена"));
+      b.addEventListener("click", () => {
+        if (over) return;
+        hit(i); moves++; sfx.flip(); render();
+        if (!cells.some(Boolean)) { over = true; setTimeout(() => solve(5), 450); }
+      });
+      box.append(b);
+    });
+    mv.textContent = moves;
+  }
+  $("#lightsNew").addEventListener("click", newGame);
+  newGame();
+}
+
+/* ====== level 6: quiz ====== */
+function initQuiz() {
+  const Q = [
+    { q: "Что ломается, когда о нём говоришь?", o: ["Тишина", "Стекло", "Закон", "Телефон"], a: 0,
+      c: ["Верно. Сказал слово, и тишины нет.", "Стекло ломается молча. Как Лансик, когда видит счёт.", "Законы нарушают, а не ломают разговорами.", "Телефон ломается, когда ты его роняешь, а не когда болтаешь."] },
+    { q: "Сколько месяцев в году имеют 28 дней?", o: ["Один, февраль", "Все двенадцать", "Ноль, Лансик не доверяет февралю", "Шесть"], a: 1,
+      c: ["Февраль да, но 28-е число есть и в остальных.", "Верно. В каждом месяце есть 28 дней. Плюс немного сверху.", "Лансик не доверяет, но календарь его не спрашивал.", "Шесть носков Лансик потерял, а месяцев тут не шесть."] },
+    { q: "У отца Марии пять дочерей: Чача, Чече, Чичи, Чочо. Как зовут пятую?", o: ["Чучу", "Мария", "Чэчэ", "Лансик"], a: 1,
+      c: ["Красиво, но нет. Условие читай сначала.", "Верно. Отец Марии, значит дочь Мария.", "Звучит правдоподобно, но подвох в первой строке.", "Лансик тут мимо проходил, к дочерям не относится."] },
+    { q: "Что тяжелее: килограмм ваты или килограмм гвоздей?", o: ["Гвозди, они же железные", "Вата, она впитала влагу", "Одинаково", "Зависит от настроения Лансика"], a: 2,
+      c: ["Железные, но килограмм есть килограмм.", "Влагу в условие никто не добавлял.", "Верно. Килограмм он и в гараже килограмм.", "Настроение Лансика весов не касается. Обычно."] },
+    { q: "Какой рукой лучше размешивать чай?", o: ["Левой", "Правой", "Любой, но лучше ложкой", "Только в перчатке"], a: 2,
+      c: ["Левой тоже можно, если очень хочется обжечься.", "Правой, и обжечься. Придумай лучше.", "Верно. Руки для другого, для чая есть ложка.", "Перчатка тут усложняет и без того грустную ситуацию."] }
+  ];
+  let i = 0, mistakes = 0;
+  const qText = $("#qText"), qOpts = $("#qOpts"), qNote = $("#qNote"), qProg = $("#qProg");
+  function show() {
+    const cur = Q[i];
+    qProg.textContent = "Вопрос " + (i + 1) + " из " + Q.length;
+    qText.textContent = cur.q; qNote.textContent = "";
+    qOpts.innerHTML = "";
+    cur.o.forEach((txt, k) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "opt"; b.textContent = txt;
+      b.addEventListener("click", () => {
+        qNote.textContent = cur.c[k];
+        if (k === cur.a) {
+          b.classList.add("right"); sfx.good();
+          $$(".opt", qOpts).forEach(o => o.disabled = true);
+          setTimeout(() => {
+            i++;
+            if (i === Q.length) { qProg.textContent = "Ошибок: " + mistakes; solve(6); }
+            else show();
+          }, 1500);
+        } else {
+          mistakes++; b.classList.add("wrong"); b.disabled = true; sfx.bad();
+        }
+      });
+      qOpts.append(b);
+    });
+  }
+  show();
+}
+
+/* ====== level 7: hidden socks on a long scroll ====== */
+function initScene() {
+  const inner = $("#sceneIn"), counter = $("#sockCount");
+  let seed = 7;
+  const lcg = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const junk = ["📦", "🛢️", "🪣", "🧰", "🪑", "📻", "🚲", "🛞"];
+  for (let k = 0; k < 34; k++) {
+    const j = document.createElement("span");
+    j.className = "junk"; j.textContent = junk[Math.floor(lcg() * junk.length)];
+    j.style.left = (lcg() * 88) + "%";
+    j.style.top = (60 + lcg() * 1380) + "px";
+    j.style.fontSize = (28 + Math.floor(lcg() * 38)) + "px";
+    inner.append(j);
+  }
+  const top = document.createElement("div"); top.className = "lbl"; top.style.top = "12px"; top.textContent = "потолок";
+  const floor = document.createElement("div"); floor.className = "lbl"; floor.style.top = "1468px"; floor.textContent = "пол. Ниже только подвал";
+  inner.append(top, floor);
+  const socks = [[12, 210], [81, 470], [44, 760], [6, 1090], [68, 1380]];
+  const decoys = [[30, 340, "🧤", "Это перчатка. Улика, но не носок."], [58, 910, "🧣", "Шарф. Лансик им не пользуется, он принципиально без шарфа."], [24, 1260, "🥾", "Сапог. Носок бы туда поместился, но это не он."]];
+  let found = 0;
+  const add = (x, y, ch, handler) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "find"; b.textContent = ch;
+    b.style.left = x + "%"; b.style.top = y + "px"; b.style.fontSize = "24px";
+    b.setAttribute("aria-label", "Подозрительный предмет");
+    b.addEventListener("click", () => handler(b));
+    inner.append(b);
+  };
+  socks.forEach(([x, y]) => add(x, y, "🧦", b => {
+    if (b.classList.contains("got")) return;
+    b.classList.add("got"); found++; counter.textContent = found; sfx.good();
+    if (found === 5) setTimeout(() => solve(7), 600);
+    else toast("Носок найден. Осталось " + (5 - found));
+  }));
+  decoys.forEach(([x, y, ch, msg]) => add(x, y, ch, () => { sfx.bad(); toast(msg); }));
+}
+
+/* ====== level 8: safe ====== */
+function initSafe() {
+  const code = DIGITS.join(""), disp = $("#safeDisp"), keys = $("#keys"), nbk = $("#notebook");
+  let buf = "";
+  DIGITS.forEach((_, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<small>замок ${i + 1}</small><b data-k="${i + 1}">?</b>`;
+    nbk.append(li);
+  });
+  const draw = () => { disp.textContent = (buf + "_".repeat(code.length - buf.length)).split("").join(" "); };
+  const press = k => {
+    if (S.solved.includes(8)) return;
+    if (k === "C") buf = "";
+    else if (k === "<") buf = buf.slice(0, -1);
+    else if (buf.length < code.length) buf += k;
+    sfx.flip(); draw();
+    if (buf.length === code.length) {
+      if (buf === code) { finish(); }
+      else {
+        sfx.bad(); say(8, pick(LINES[8].bad));
+        disp.classList.add("shake"); setTimeout(() => disp.classList.remove("shake"), 450);
+        buf = ""; setTimeout(draw, 450);
+      }
+    }
+  };
+  ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "<"].forEach(k => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "key" + (k === "C" || k === "<" ? " fn" : "");
+    b.textContent = k === "<" ? "←" : k;
+    b.setAttribute("aria-label", k === "<" ? "Стереть" : k === "C" ? "Сбросить" : "Цифра " + k);
+    b.addEventListener("click", () => press(k));
+    keys.append(b);
+  });
+  draw();
+}
+
+/* ====== token ====== */
+function h53(str, seed = 0) {
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+function makeToken(nick, finish, dur) {
+  const body = [nick, finish, dur].join("|");
+  const raw = encodeURIComponent(body + "|" + h53(body + SECRET));
+  return btoa(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function readToken(t) {
+  try {
+    let b = t.trim().replace(/-/g, "+").replace(/_/g, "/");
+    while (b.length % 4) b += "=";
+    const p = decodeURIComponent(atob(b)).split("|");
+    if (p.length < 4) return null;
+    const sig = p.pop(), body = p.join("|");
+    const [nick, finish, dur] = p;
+    return { nick, finish: +finish, dur: +dur, ok: h53(body + SECRET) === sig && Number.isFinite(+finish) };
+  } catch (e) { return null; }
+}
+const msk = sec => new Date(sec * 1000).toLocaleString("ru-RU", { timeZone: "Europe/Moscow", dateStyle: "short", timeStyle: "medium" });
+
+/* ====== finale ====== */
+function fillCert() {
+  const dur = Math.floor(elapsed() / 1000);
+  $("#cNick").textContent = S.nick;
+  $("#cTime").textContent = fmt(elapsed()) + " (" + dur + " с)" + (S.penalty ? ", штраф за подсказки " + S.penalty + " с" : "");
+  $("#cDate").textContent = msk(S.finish) + " МСК";
+  $("#cHints").textContent = Object.keys(S.hints).length;
+  $("#token").value = makeToken(S.nick, S.finish, dur);
+}
+function showFinale(instant) {
+  const f = $("#finale");
+  f.hidden = false; fillCert(); paintClock();
+  const open = () => $("#vault").classList.add("open");
+  if (instant) open(); else setTimeout(open, 500);
+}
+function finish() {
+  S.finish = Math.floor(Date.now() / 1000);
+  S.solved.push(8); save();
+  markSolved(8); say(8, LINES[8].win);
+  sfx.win(); paintProgress(); paintClock();
+  showFinale(false);
+  setTimeout(() => { $("#finale").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }, 300);
+  [0, 400, 900].forEach(d => setTimeout(() => burst(innerWidth * (.25 + Math.random() * .5), innerHeight * .4, 90), d + 600));
+}
+$("#copyTok").addEventListener("click", async () => {
+  const ta = $("#token");
+  try { await navigator.clipboard.writeText(ta.value); toast("Токен скопирован"); }
+  catch (e) { ta.focus(); ta.select(); toast("Выдели токен и скопируй вручную"); }
+});
+$("#again").addEventListener("click", () => {
+  try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
+  location.hash = ""; location.reload();
+});
+
+/* ====== judge view ====== */
+function runJudge() {
+  const lines = $("#tokens").value.split(/\s+/).filter(Boolean);
+  const byDur = $("#judgeSort").value === "dur";
+  const seen = new Set(), rows = [];
+  lines.forEach(t => {
+    const r = readToken(t);
+    rows.push(r ? { ...r, raw: t } : { nick: "нечитаемый токен", finish: 0, dur: 0, ok: false, raw: t });
+  });
+  const good = rows.filter(r => r.ok).sort((a, b) => byDur ? (a.dur - b.dur || a.finish - b.finish) : (a.finish - b.finish));
+  const bad = rows.filter(r => !r.ok);
+  const tbody = $("#judgeRows");
+  tbody.innerHTML = "";
+  const add = (cells, cls) => {
+    const tr = document.createElement("tr");
+    if (cls) tr.className = cls;
+    cells.forEach(c => { const td = document.createElement("td"); td.textContent = c; tr.append(td); });
+    tbody.append(tr);
+  };
+  let place = 0;
+  good.forEach(r => {
+    const dupe = seen.has(r.nick.toLowerCase());
+    seen.add(r.nick.toLowerCase());
+    if (!dupe) place++;
+    add([dupe ? "—" : place, r.nick, msk(r.finish), fmt(r.dur * 1000), r.dur, dupe ? "повтор ника" : (place <= 10 ? "в десятке" : "верно")], !dupe && place <= 10 ? "win" : "");
+  });
+  bad.forEach(r => add(["—", r.nick, "—", "—", "—", "подпись не совпала"], "bad"));
+  if (!rows.length) add(["", "Вставь токены выше", "", "", "", ""]);
+}
+$("#judgeBtn").addEventListener("click", runJudge);
+$("#judgeSort").addEventListener("change", runJudge);
+
+function initQr() {
+  const inp = $("#qrUrl"), box = $("#qrBox"), dl = $("#qrDl");
+  const base = location.href.split("#")[0];
+  if (/^https?:\/\//.test(base)) inp.value = base;
+  $("#qrMake").addEventListener("click", () => {
+    const url = inp.value.trim();
+    if (!/^https?:\/\//.test(url)) { toast("Вставь ссылку, которая начинается с https://"); return; }
+    if (typeof QRCode === "undefined") { toast("Библиотека QR не загрузилась. Проверь интернет и обнови страницу"); return; }
+    box.innerHTML = "";
+    new QRCode(box, { text: url, width: 256, height: 256, colorDark: "#0d1719", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
+    box.hidden = false; dl.hidden = false;
+  });
+  dl.addEventListener("click", () => {
+    const src = box.querySelector("canvas");
+    if (!src) { toast("Сделай скриншот QR-кода"); return; }
+    const pad = 32, c = document.createElement("canvas");
+    c.width = c.height = 256 + pad * 2;
+    const g = c.getContext("2d");
+    g.fillStyle = "#ffffff"; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(src, pad, pad, 256, 256);
+    try {
+      const a = document.createElement("a");
+      a.href = c.toDataURL("image/png"); a.download = "lansik-safe-qr.png";
+      document.body.append(a); a.click(); a.remove();
+    } catch (e) { toast("Не удалось скачать. Сделай скриншот QR-кода"); }
+  });
+}
+function route() {
+  const j = location.hash === "#judge";
+  $("#quest").hidden = j; $("#judge").hidden = !j;
+  if (j) scrollTo(0, 0);
+}
+addEventListener("hashchange", route);
+
+/* ====== atmosphere: typed line, parallax, reveal, rail tracking ====== */
+function typeIntro() {
+  const line = "Лансик спрятал в сейфе всё самое ценное и забыл, как его открыть. Помоги вскрыть сейф: восемь замков, куча игр и один очень ехидный хозяин.";
+  const el = $("#typed");
+  if (reduce) { el.textContent = line; return; }
+  let i = 0;
+  const id = setInterval(() => {
+    el.textContent = line.slice(0, ++i);
+    if (i >= line.length) clearInterval(id);
+  }, 22);
+}
+function parallax() {
+  if (reduce) return;
+  const fl = $$("[data-speed]");
+  let queued = false;
+  addEventListener("scroll", () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      const y = scrollY;
+      fl.forEach(el => { el.style.transform = `translate3d(0,${(y * el.dataset.speed).toFixed(1)}px,0) rotate(${el.dataset.rot || 0}deg)`; });
+      queued = false;
+    });
+  }, { passive: true });
+}
+function observers() {
+  const rev = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); }), { threshold: .08 });
+  $$(".reveal").forEach(el => rev.observe(el));
+  const cur = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) {
+      $$(".node").forEach(n => n.classList.toggle("cur", n.dataset.go === e.target.dataset.n));
+    }
+  }), { threshold: .45 });
+  $$(".lock").forEach(el => cur.observe(el));
+}
+let eggs = 0;
+$("#heroAv").addEventListener("click", () => {
+  eggs++; tone(300 + eggs * 60, .1, "square", .05);
+  if (eggs === 5) { toast("Лансик: «Я всё слышал. Верни носки»"); burst(innerWidth / 2, 160, 40); eggs = 0; }
+});
+
+/* ====== boot ====== */
+decorateLocks();
+setupHints();
+initCipher(); initSlide(); initMemory(); initSimon(); initLights(); initQuiz(); initScene(); initSafe();
+observers(); parallax(); typeIntro(); initQr();
+load();
+if (S.start && S.nick) {
+  beginUI();
+  S.solved.forEach(n => { markSolved(n); say(n, LINES[n].win); });
+  const top = Math.max(0, ...S.solved.filter(n => n < 8));
+  for (let n = 1; n <= Math.min(8, top + 1); n++) unlock(n);
+  if (S.finish) showFinale(true);
+}
+paintProgress(); paintClock(); route();
+})();
+</script>
+
+</html>
